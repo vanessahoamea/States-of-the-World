@@ -16,7 +16,8 @@ def default():
 
 @app.route("/add", methods = ["POST"])
 def add_country():
-    values = [request.json[key] for key in request.json]
+    values = [request.json[key] if request.json[key] != None else "null" for key in request.json]
+    value_types = ["'{}'" if type(request.json[key]) == str else "{}" for key in request.json]
     success = True
 
     try:
@@ -26,13 +27,14 @@ def add_country():
         if(len(cursor.fetchall())) > 0:
             raise Exception("country already exists")
 
-        cursor.execute("INSERT INTO countries VALUES ('{}', '{}', '{}', {}, {}, {}, '{}', '{}', '{}')".format(*values))
+        query = "INSERT INTO countries VALUES ({})".format(", ".join(value_types))
+        cursor.execute(query.format(*values))
         mysql.connection.commit()
-
-        cursor.close()
     except Exception as e:
-        print("Problem inserting into database: " + str(e))
+        print("Problem inserting into database: " + request.json["name"] + " - " + str(e))
         success = False
+    finally:
+        cursor.close()
     
     return jsonify({"success": success})
 

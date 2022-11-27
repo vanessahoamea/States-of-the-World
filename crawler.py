@@ -25,12 +25,12 @@ def scrape_data(content):
     for column in info:
         if "Capital" in column.get_text():
             value = column.next_sibling.contents[0].get_text()
-            match = re.findall("\w+\s*\w+", value)
-            capital = match[0]
+            match = re.findall("([\w+\.,'\-\s]+)+", value)
+            capital = match[0].replace("'", r"\'")
 
             country_data["capital"] = capital
 
-        if re.match("(Official|National|Major).*language", column.get_text()):
+        if re.match("(Official|National|Major|Vernacular).*language", column.get_text()):
             value = column.next_sibling
             try:
                 value_list = value.contents[0].select("ul")[0]
@@ -38,6 +38,10 @@ def scrape_data(content):
                 languages = [re.sub("[^a-zA-Z ]+", "", item.contents[0].get_text()) for item in items]
             except:
                 language = value.contents[0].get_text()
+                try:
+                    language = language.split(":")[1].language.split("\n")[0].strip()
+                except:
+                    pass
                 languages = [language]
 
             country_data["language"] = json.dumps(languages)
@@ -77,11 +81,6 @@ def scrape_data(content):
             values = column.parent.next_sibling
             population = values.contents[1].get_text()
             population = re.findall("[0-9,]+", population)[0]
-            try:
-                population = population.split("[")[0]
-                population = population.split("(")[0]
-            except:
-                pass
             country_data["population"] = int(population.replace(",", ""))
 
             try:
