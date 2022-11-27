@@ -1,2 +1,4 @@
 requests
 bs4
+flask
+flask_mysqldb
