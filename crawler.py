@@ -10,8 +10,8 @@ def scrape_data(content):
         "capital": None,
         "language": None,
         "population": None,
-        "density": None, #per km2
-        "area": None, #km2
+        "density": None,
+        "area": None,
         "time_zone": None,
         "currency": None,
         "government": None
@@ -114,6 +114,9 @@ if __name__ == "__main__":
 
         try:
             country_data = scrape_data(response.content)
-            requests.post(url="http://localhost:5000/add", json=country_data)
+            requests.post(
+                url="http://localhost:5000/add",
+                json=country_data
+            )
         except Exception as e:
             print(url["href"] + " - " + str(e))
