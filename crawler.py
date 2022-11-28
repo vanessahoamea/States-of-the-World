@@ -26,25 +26,26 @@ def scrape_data(content):
         if "Capital" in column.get_text():
             value = column.next_sibling.contents[0].get_text()
             match = re.findall("([\w+\.,'\-\s]+)+", value)
-            capital = match[0].replace("'", r"\'")
+            capital = match[0].replace("'", r"\'").replace("\n", "").strip()
 
             country_data["capital"] = capital
 
         if re.match("(Official|National|Major|Vernacular).*language", column.get_text()):
-            value = column.next_sibling
-            try:
-                value_list = value.contents[0].select("ul")[0]
-                items = value_list.find_all("li")
-                languages = [re.sub("[^a-zA-Z ]+", "", item.contents[0].get_text()) for item in items]
-            except:
-                language = value.contents[0].get_text()
+            if country_data["language"] == None or "None" in country_data["language"]:
+                value = column.next_sibling
                 try:
-                    language = language.split(":")[1].language.split("\n")[0].strip()
+                    value_list = value.contents[0].select("ul")[0]
+                    items = value_list.find_all("li")
+                    languages = [re.sub("[^a-zA-Z ]+", "", item.contents[0].get_text()) for item in items]
                 except:
-                    pass
-                languages = [language]
+                    language = value.contents[0].get_text()
+                    try:
+                        language = language.split(":")[1].language.split("\n")[0].strip()
+                    except:
+                        pass
+                    languages = [language]
 
-            country_data["language"] = json.dumps(languages)
+                country_data["language"] = json.dumps(languages)
         
         if "Time zone" in column.get_text():
             value = column.next_sibling.get_text().replace("−", "-")
@@ -71,7 +72,7 @@ def scrape_data(content):
         
         if "Government" in column.get_text():
             value = column.next_sibling
-            government = re.sub("(\[\d+\])+", "", value.get_text())	
+            government = re.sub("(\[.+\])+", "", value.get_text())
 
             country_data["government"] = government
 
