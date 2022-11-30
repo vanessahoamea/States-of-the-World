@@ -13,7 +13,7 @@ mysql = MySQL(app)
 
 @app.route("/")
 def default():
-    return "Hello world!"
+    return "Welcome to the States of the World API!"
 
 @app.route("/add", methods=["POST"])
 def add_country():
@@ -45,6 +45,10 @@ def add_country():
     
     return jsonify({"success": success})
 
+@app.route("/top-10", methods=["GET"])
+def get_top_10_default():
+    return get_top_10("population")
+
 @app.route("/top-10/<parameter>", methods=["GET"])
 def get_top_10(parameter):
     parameter = parameter.lower().strip()
@@ -67,7 +71,7 @@ def get_top_10(parameter):
             country = {
                 "name": record[0],
                 "capital": record[1],
-                "language": record[2],
+                "language": record[2].replace("\"", ""),
                 "population": record[3],
                 "density (per km2)": record[4],
                 "area (km2)": record[5],
@@ -89,7 +93,7 @@ def get_top_10(parameter):
 
 @app.route("/all", methods=["GET"])
 def get_all():
-    args = request.args.to_dict()
+    args = request.args
     pairs = []
     values = []
 
@@ -119,6 +123,9 @@ def get_all():
             values.append(split[0] + sign + "0" + split[1])
             values.append(split[0] + sign + "0" + split[1] + ":00")
     
+    if len(pairs) == 0:
+        pairs = ["1"]
+    
     try:
         cursor = mysql.connection.cursor()
 
@@ -131,7 +138,7 @@ def get_all():
             country = {
                 "name": record[0],
                 "capital": record[1],
-                "language": record[2],
+                "language": record[2].replace("\"", ""),
                 "population": record[3],
                 "density (per km2)": record[4],
                 "area (km2)": record[5],
@@ -142,8 +149,7 @@ def get_all():
             result.append(country)
 
         result = Response(json.dumps(result), mimetype="application/json")
-    except Exception as e:
-        print(str(e))
+    except:
         result = jsonify({
             "message": "There was a problem reading from the database."
         })

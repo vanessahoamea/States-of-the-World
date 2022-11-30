@@ -40,7 +40,7 @@ def scrape_data(content):
                 except:
                     language = value.contents[0].get_text()
                     try:
-                        language = language.split(":")[1].language.split("\n")[0].strip()
+                        language = language.split(":")[1].split("\n")[0].strip()
                     except:
                         pass
                     languages = [language]
