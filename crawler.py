@@ -1,8 +1,21 @@
-import requests
-from bs4 import BeautifulSoup
+"""
+This module handles the web scraping part of the project. It extracts
+relevant information about various countries and stores it in the 
+database.
+"""
+
+__version__ = "0.1"
+__author__ = "Vanessa Hoamea"
+
 import re
 import json
+import requests
+from bs4 import BeautifulSoup
 
+"""
+Scrapes the Wikipedia page passed as a parameter and returns a dict
+containing all the necessary information found on the page.
+"""
 def scrape_data(content):
     soup = BeautifulSoup(content, "html.parser")
     country_data = {
@@ -16,11 +29,12 @@ def scrape_data(content):
         "currency": None,
         "government": None
     }
-    has_density = False
 
+    # The country's name can be extracted from the page title
     name = soup.select("span[class='mw-page-title-main']")
     country_data["name"] = name[0].get_text()
 
+    # The other attributes will be extracted from the infobox
     info = soup.select("th[class='infobox-label']")
     for column in info:
         if "Capital" in column.get_text():
@@ -30,17 +44,26 @@ def scrape_data(content):
 
             country_data["capital"] = capital
 
-        if re.match("(Official|National|Major|Vernacular).*language", column.get_text()):
-            if country_data["language"] == None or "None" in country_data["language"]:
+        language_regex = "(Official|National|Major|Vernacular).*language"
+        if re.match(language_regex, column.get_text()):
+            if (country_data["language"] == None 
+                    or "None" in country_data["language"]):
+                # In case an infobox has multiple language sections, we will
+                # only extract languages from the first one we find to avoid
+                # adding too much/useless information to the database
                 value = column.next_sibling
                 try:
                     value_list = value.contents[0].select("ul")[0]
                     items = value_list.find_all("li")
-                    languages = [re.sub("[^a-zA-Z ]+", "", item.contents[0].get_text()) for item in items]
+                    for item in items:
+                        item_text = item.contents[0].get_text()
+                        languages.append(re.sub("[^a-zA-Z ]+", "", item_text))
                 except:
                     language = value.contents[0].get_text()
                     try:
-                        language = language.split(":")[1].split("\n")[0].strip()
+                        language = (language.split(":")[1].
+                                             split("\n")[0].
+                                             strip())
                     except:
                         pass
                     languages = [language]
@@ -61,6 +84,8 @@ def scrape_data(content):
         if "Currency" in column.get_text():
             value = column.next_sibling.get_text()
             if country_data["currency"] == None:
+                # Same as with the languages, only the first value is
+                # relevant
                 try:
                     match = re.findall("[A-Z]{3}", value)
                     currency = match[0]
@@ -100,12 +125,15 @@ def scrape_data(content):
         
     return country_data
 
+"""The main function that acts as our crawler."""
 if __name__ == "__main__":
+    # Retrieving the list of countries
     response = requests.get(
         url="https://en.wikipedia.org/wiki/List_of_sovereign_states"
     )
     soup = BeautifulSoup(response.content, "html.parser")
 
+    # Opening each country's page and collecting the data
     spans = soup.find_all("span", {"class": "flagicon"})
     for span in spans:
         url = span.next_sibling
@@ -113,6 +141,8 @@ if __name__ == "__main__":
             url="https://en.wikipedia.org" + url["href"]
         )
 
+        # Saving the country in the database by calling the /add
+        # endpoint from our API
         try:
             country_data = scrape_data(response.content)
             requests.post(
