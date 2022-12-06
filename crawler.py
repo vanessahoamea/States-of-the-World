@@ -55,6 +55,7 @@ def scrape_data(content):
                 try:
                     value_list = value.contents[0].select("ul")[0]
                     items = value_list.find_all("li")
+                    languages = []
                     for item in items:
                         item_text = item.contents[0].get_text()
                         languages.append(re.sub("[^a-zA-Z ]+", "", item_text))
